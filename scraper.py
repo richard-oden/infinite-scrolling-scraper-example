@@ -1,5 +1,3 @@
-import os
-from colorama import Fore
 from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
@@ -12,36 +10,27 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-driver = None
-_wait = None
+# create service object:
+_service = Service(ChromeDriverManager().install())
 
-def start_driver():
-    '''
-    Starts the web driver and defines selenium_helper.driver.
-    '''
-    global driver
-    global _wait
+# create WebDriver
+driver = webdriver.Chrome(service=_service)
+
+driver.get('http://127.0.0.1:5500/site.html')
+
+driver.switch_to.frame(0)
+
+all_boxes = []
+iterations = 0
+limit = 10
+
+while iterations < limit:
+    boxes = driver.find_elements_by_css_selector('div.box1')
+    new_boxes = [b for b in boxes if b.id not in [ab.id for ab in all_boxes]]
+    all_boxes.extend(new_boxes)
+    driver.execute_script('arguments[0].scrollIntoView({block: "center"})', new_boxes[-1])
+
+    sleep(4)
+
+print(len(all_boxes))
     
-    # hide webdriver_manager logs:
-    os.environ['WDM_LOG_LEVEL'] = '0'
-
-    # create service object:
-    _service = Service(ChromeDriverManager().install())
-
-    # disable image loading for better performance:
-    _chrome_options = webdriver.ChromeOptions()
-    _chrome_options.experimental_options["prefs"] = {
-        "profile.default_content_settings": {"images": 2},
-        "profile.managed_default_content_settings": {"images": 2}
-    }
-
-    # hide selenium logs:
-    _chrome_options.add_argument("--log-level=3")
-
-    # create WebDriver
-    driver = webdriver.Chrome(service=_service, chrome_options=_chrome_options)
-
-    # maximize window
-    driver.maximize_window()
-
-    _wait = WebDriverWait(driver, 5, ignored_exceptions=(NoSuchElementException,StaleElementReferenceException))
